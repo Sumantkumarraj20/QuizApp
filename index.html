@@ -268,31 +268,35 @@
 
     // Enhanced API client with error handling
     async function apiClient(action, data = {}) {
-      try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ action, ...data })
-        });
+  try {
+    // Add timestamp to prevent caching
+    const url = `${API_URL}?action=${action}&t=${Date.now()}`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action, ...data }),
+      redirect: 'follow' // Important for Google Apps Script
+    });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        
-        if (result.error) {
-          throw new Error(result.error);
-        }
-        
-        return result;
-      } catch (error) {
-        console.error('API call failed:', error);
-        throw new Error('Failed to connect to server. Please try again later.');
-      }
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const result = await response.json();
+    
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('API call failed:', error);
+    throw new Error('Failed to connect to server. Please try again later.');
+  }
+}
 
     // Handle login
     async function login() {
