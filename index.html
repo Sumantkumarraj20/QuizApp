@@ -211,7 +211,6 @@
   <script>
     // Configuration
     const API_URL = "https://script.google.com/macros/s/AKfycby4xKx0Y17sKOnAa0b8lMqzJUdrs5woGqrOb8PkL33gguR0AxmkHjI7bTg868irMo8A/exec";
-    const PROXY_URL = "https://cors-anywhere.herokuapp.com/"; // Development only
     
     // App State
     let currentToken = null;
@@ -267,50 +266,31 @@
       }
     }
 
-    // Enhanced API client with error handling and retry logic
+    // Enhanced API client with error handling
     async function apiClient(action, data = {}) {
-      const MAX_RETRIES = 2;
-      let attempts = 0;
-      
-      while (attempts <= MAX_RETRIES) {
-        try {
-          const isDevelopment = window.location.hostname === 'localhost' || 
-                               window.location.hostname === '127.0.0.1';
-          
-          let url = isDevelopment ? `${PROXY_URL}${API_URL}` : API_URL;
-          url += `${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
-          
-          const response = await fetch(url, {
-            redirect: "follow",
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({ action, ...data })
-          });
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ action, ...data })
+        });
 
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const result = await response.json();
-          
-          if (result.error) {
-            throw new Error(result.error);
-          }
-          
-          return result;
-        } catch (error) {
-          attempts++;
-          if (attempts > MAX_RETRIES) {
-            console.error(`API call failed after ${MAX_RETRIES} attempts:`, error);
-            throw new Error('Failed to connect to server. Please try again later.');
-          }
-          
-          // Exponential backoff
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const result = await response.json();
+        
+        if (result.error) {
+          throw new Error(result.error);
+        }
+        
+        return result;
+      } catch (error) {
+        console.error('API call failed:', error);
+        throw new Error('Failed to connect to server. Please try again later.');
       }
     }
 
@@ -396,7 +376,7 @@
       }
       
       const question = questions[currentQuestionIndex];
-      questionElement.textContent = question[1];
+      questionElement.textContent = question.question;
       optionsElement.innerHTML = '';
       explanationElement.classList.add('hidden');
       confidenceContainer.classList.add('hidden');
@@ -405,10 +385,10 @@
       selectedOption = null;
       
       // Display options
-      question[2].split(',').forEach((option, index) => {
+      question.options.forEach((option, index) => {
         const optionElement = document.createElement('div');
         optionElement.className = 'option';
-        optionElement.textContent = option.trim();
+        optionElement.textContent = option;
         optionElement.addEventListener('click', () => selectOption(index));
         optionsElement.appendChild(optionElement);
       });
@@ -460,11 +440,10 @@
       }
       
       const question = questions[currentQuestionIndex];
-      const options = question[2].split(',');
-      const isCorrect = options[selectedOption].trim() === question[3].trim();
+      const isCorrect = question.options[selectedOption] === question.answer;
       
       // Show explanation
-      explanationElement.textContent = question[4] || 'No explanation available';
+      explanationElement.textContent = question.explanation || 'No explanation available';
       explanationElement.classList.remove('hidden');
       
       // Show confidence rating if answer was correct
@@ -473,7 +452,7 @@
       }
       
       // Highlight answers
-      const correctIndex = options.findIndex(opt => opt.trim() === question[3].trim());
+      const correctIndex = question.options.findIndex(opt => opt === question.answer);
       if (correctIndex >= 0) {
         optionsElement.children[correctIndex].classList.add('correct');
       }
@@ -487,7 +466,7 @@
       
       // Save progress
       try {
-        await saveProgress(question[0], isCorrect, isCorrect ? selectedConfidence : 0);
+        await saveProgress(question.id, isCorrect, isCorrect ? selectedConfidence : 0);
       } catch (error) {
         console.error('Failed to save progress:', error);
       }
