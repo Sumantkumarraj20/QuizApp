@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Quiz App</title>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: 0 auto; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="loginScreen">
+    <h1>Login</h1>
+    <input id="username" placeholder="Username">
+    <input id="pin" type="password" placeholder="4-digit PIN" maxlength="4">
+    <button onclick="login()">Start Quiz</button>
+  </div>
+
+  <!-- Quiz Screen (hidden initially) -->
+  <div id="quizScreen" class="hidden">
+    <h2 id="question"></h2>
+    <div id="options"></div>
+    <button onclick="nextQuestion()">Submit</button>
+  </div>
+
+  <script>
+    const API_URL = "YOUR_APPS_SCRIPT_URL"; // Replace after deployment
+    let currentToken = null;
+
+    // Handle login
+    async function login() {
+      const username = document.getElementById("username").value;
+      const pin = document.getElementById("pin").value;
+      
+      const response = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "login", username, pin })
+      });
+      
+      const data = await response.json();
+      if (data.token) {
+        currentToken = data.token;
+        document.cookie = `quizToken=${data.token}; max-age=86400; path=/`;
+        showQuiz();
+      } else {
+        alert("Login failed!");
+      }
+    }
+
+    // Load quiz questions
+    async function showQuiz() {
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("quizScreen").classList.remove("hidden");
+      // TODO: Fetch questions and display first question
+    }
+  </script>
+</body>
+</html>
