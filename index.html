@@ -281,6 +281,7 @@
           url += `${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
           
           const response = await fetch(url, {
+            redirect: "follow",
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
