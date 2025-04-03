@@ -1,89 +1,350 @@
 <!DOCTYPE html>
 <html>
-
 <head>
   <title>Quiz App</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      font-family: Arial;
-      max-width: 600px;
+      font-family: Arial, sans-serif;
+      max-width: 800px;
       margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
     }
-
     .hidden {
       display: none;
     }
+    .screen {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-top: 20px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #3367d6;
+    }
+    .option {
+      padding: 10px;
+      margin: 5px 0;
+      background-color: #f1f1f1;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .option:hover {
+      background-color: #e1e1e1;
+    }
+    .selected {
+      background-color: #d4e6ff;
+    }
+    .correct {
+      background-color: #a5d6a7;
+    }
+    .incorrect {
+      background-color: #ef9a9a;
+    }
+    #progress {
+      margin: 20px 0;
+      height: 5px;
+      background-color: #e0e0e0;
+      border-radius: 5px;
+    }
+    #progressBar {
+      height: 100%;
+      width: 0%;
+      background-color: #4285f4;
+      border-radius: 5px;
+      transition: width 0.3s;
+    }
+    #explanation {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #e3f2fd;
+      border-radius: 5px;
+    }
   </style>
 </head>
-
 <body>
   <!-- Login Screen -->
-  <div id="loginScreen">
-    <h1>Login</h1>
-    <input id="username" placeholder="Username">
-    <input id="pin" type="password" placeholder="4-digit PIN" maxlength="4">
+  <div id="loginScreen" class="screen">
+    <h1>Quiz App Login</h1>
+    <input id="username" placeholder="Username (3-20 characters)" minlength="3" maxlength="20">
+    <input id="pin" type="password" placeholder="4-digit PIN" maxlength="4" pattern="\d{4}">
     <button onclick="login()">Start Quiz</button>
+    <div id="loginError" style="color: red; margin-top: 10px;"></div>
   </div>
 
-  <!-- Quiz Screen (hidden initially) -->
-  <div id="quizScreen" class="hidden">
+  <!-- Quiz Screen -->
+  <div id="quizScreen" class="screen hidden">
+    <div id="progress">
+      <div id="progressBar"></div>
+    </div>
     <h2 id="question"></h2>
     <div id="options"></div>
-    <button onclick="nextQuestion()">Submit</button>
+    <div id="explanation" class="hidden"></div>
+    <button id="submitBtn" onclick="submitAnswer()">Submit</button>
+    <button id="nextBtn" class="hidden" onclick="nextQuestion()">Next Question</button>
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwvKU2xDm5j_nj9F9fmJ-lkswv70G807grW5JX6pGlM4GiS13nRT03aQMKbEWVgM_Y/exec"; // Replace after deployment
+    // Configuration
+    const API_URL = "https://script.google.com/macros/s/AKfycbwvKU2xDm5j_nj9F9fmJ-lkswv70G807grW5JX6pGlM4GiS13nRT03aQMKbEWVgM_Y/exec";
+    
+    // App State
     let currentToken = null;
+    let currentUser = null;
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let userProgress = {};
+    let selectedOption = null;
+
+    // DOM Elements
+    const loginScreen = document.getElementById('loginScreen');
+    const quizScreen = document.getElementById('quizScreen');
+    const questionElement = document.getElementById('question');
+    const optionsElement = document.getElementById('options');
+    const explanationElement = document.getElementById('explanation');
+    const submitBtn = document.getElementById('submitBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const progressBar = document.getElementById('progressBar');
+    const loginError = document.getElementById('loginError');
+
+    // Initialize the app
+    function init() {
+      // Check for existing session
+      const cookies = document.cookie.split(';').map(c => c.trim());
+      const tokenCookie = cookies.find(c => c.startsWith('quizToken='));
+      
+      if (tokenCookie) {
+        currentToken = tokenCookie.split('=')[1];
+        loadQuiz();
+      }
+    }
 
     // Handle login
     async function login() {
-      const username = document.getElementById("username").value;
-      const pin = document.getElementById("pin").value;
+      const username = document.getElementById('username').value.trim();
+      const pin = document.getElementById('pin').value.trim();
+      
+      if (!username || username.length < 3 || username.length > 20) {
+        loginError.textContent = 'Username must be 3-20 characters';
+        return;
+      }
+      
+      if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+        loginError.textContent = 'PIN must be 4 digits';
+        return;
+      }
 
-      const response = await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "login", username, pin })
-      });
-
-      const data = await response.json();
-      if (data.token) {
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            action: 'login', 
+            username, 
+            pin 
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+          loginError.textContent = data.error;
+          return;
+        }
+        
         currentToken = data.token;
+        currentUser = data.username;
+        userProgress = data.progress || {};
+        
+        // Set cookie that expires in 24 hours
         document.cookie = `quizToken=${data.token}; max-age=86400; path=/`;
-        showQuiz();
-      } else {
-        alert("Login failed!");
+        
+        loadQuiz();
+      } catch (error) {
+        loginError.textContent = 'Failed to connect to server';
+        console.error(error);
       }
     }
 
     // Load quiz questions
-    async function showQuiz() {
-      document.getElementById("loginScreen").classList.add("hidden");
-      document.getElementById("quizScreen").classList.remove("hidden");
-      // TODO: Fetch questions and display first question
-    }
-    // Pseudocode for spaced repetition
-    function getNextReviewDate(confidence) {
-      const intervals = [1, 3, 7, 14, 30]; // Days
-      return new Date(Date.now() + intervals[confidence] * 86400 * 1000);
+    async function loadQuiz() {
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'getQuestions',
+            token: currentToken,
+            username: currentUser
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+        
+        questions = data.questions;
+        currentQuestionIndex = 0;
+        
+        loginScreen.classList.add('hidden');
+        quizScreen.classList.remove('hidden');
+        
+        showQuestion();
+      } catch (error) {
+        alert('Failed to load questions');
+        console.error(error);
+      }
     }
 
-    // After user answers:
-    function handleAnswer(questionId, isCorrect) {
-      const confidence = isCorrect ? getUserConfidence() : 0; // 0-4 scale
-      const nextReview = getNextReviewDate(confidence);
-
-      // Save progress
-      fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          action: "saveProgress",
-          token: currentToken,
-          progress: { [questionId]: { nextReview, confidence } }
-        })
+    // Display current question
+    function showQuestion() {
+      if (currentQuestionIndex >= questions.length) {
+        alert('Quiz completed!');
+        return;
+      }
+      
+      const question = questions[currentQuestionIndex];
+      questionElement.textContent = question[1]; // Question text
+      
+      // Clear previous options
+      optionsElement.innerHTML = '';
+      explanationElement.classList.add('hidden');
+      nextBtn.classList.add('hidden');
+      submitBtn.classList.remove('hidden');
+      selectedOption = null;
+      
+      // Display options
+      const options = question[2].split(',');
+      options.forEach((option, index) => {
+        const optionElement = document.createElement('div');
+        optionElement.className = 'option';
+        optionElement.textContent = option;
+        optionElement.onclick = () => selectOption(index);
+        optionsElement.appendChild(optionElement);
       });
+      
+      // Update progress bar
+      progressBar.style.width = `${(currentQuestionIndex / questions.length) * 100}%`;
     }
+
+    // Handle option selection
+    function selectOption(index) {
+      // Deselect previous option
+      if (selectedOption !== null) {
+        optionsElement.children[selectedOption].classList.remove('selected');
+      }
+      
+      // Select new option
+      selectedOption = index;
+      optionsElement.children[index].classList.add('selected');
+    }
+
+    // Submit answer
+    async function submitAnswer() {
+      if (selectedOption === null) {
+        alert('Please select an answer');
+        return;
+      }
+      
+      const question = questions[currentQuestionIndex];
+      const options = question[2].split(',');
+      const isCorrect = options[selectedOption] === question[3]; // Compare with correct answer
+      
+      // Show explanation
+      explanationElement.textContent = question[4]; // Explanation
+      explanationElement.classList.remove('hidden');
+      
+      // Highlight correct/incorrect answers
+      const correctIndex = options.indexOf(question[3]);
+      optionsElement.children[correctIndex].classList.add('correct');
+      
+      if (!isCorrect) {
+        optionsElement.children[selectedOption].classList.add('incorrect');
+      }
+      
+      // Update UI
+      submitBtn.classList.add('hidden');
+      nextBtn.classList.remove('hidden');
+      
+      // Save progress with spaced repetition
+      const confidence = isCorrect ? promptConfidence() : 0;
+      await saveProgress(question[0], isCorrect, confidence);
+    }
+
+    // Move to next question
+    function nextQuestion() {
+      currentQuestionIndex++;
+      showQuestion();
+    }
+
+    // Prompt user for confidence level
+    function promptConfidence() {
+      // In a real app, you might use a modal or rating system
+      // For simplicity, we'll use a default value here
+      return 3; // Medium confidence (scale 1-5)
+    }
+
+    // Save user progress
+    async function saveProgress(questionId, isCorrect, confidence) {
+      const nextReview = calculateNextReviewDate(confidence);
+      
+      userProgress[questionId] = {
+        nextReview: nextReview.toISOString(),
+        confidence,
+        lastAnswered: new Date().toISOString(),
+        correct: isCorrect
+      };
+      
+      try {
+        await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'saveProgress',
+            token: currentToken,
+            username: currentUser,
+            progress: userProgress
+          })
+        });
+      } catch (error) {
+        console.error('Failed to save progress:', error);
+      }
+    }
+
+    // Calculate next review date based on spaced repetition
+    function calculateNextReviewDate(confidence) {
+      const intervals = [1, 3, 7, 14, 30]; // Days for confidence levels 0-4
+      const days = intervals[Math.min(confidence, intervals.length - 1)];
+      return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    }
+
+    // Initialize the app when page loads
+    window.onload = init;
   </script>
 </body>
-
 </html>
