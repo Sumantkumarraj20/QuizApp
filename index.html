@@ -5,76 +5,174 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    :root {
+      --primary-color: #4285f4;
+      --primary-hover: #3367d6;
+      --correct-color: #a5d6a7;
+      --incorrect-color: #ef9a9a;
+      --selected-color: #d4e6ff;
+      --explanation-bg: #e3f2fd;
+      --error-color: #d32f2f;
+      --border-radius: 8px;
+      --box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       max-width: 800px;
       margin: 0 auto;
       padding: 20px;
-      background-color: #f5f5f5;
+      background-color: #f8f9fa;
+      line-height: 1.6;
     }
+    
     .hidden {
-      display: none;
+      display: none !important;
     }
+    
     .screen {
       background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      margin-top: 20px;
+      padding: 2rem;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      margin-top: 1.5rem;
+      animation: fadeIn 0.3s ease-out;
     }
-    input, button {
-      padding: 10px;
-      margin: 10px 0;
+    
+    h1, h2 {
+      color: #2c3e50;
+      margin-bottom: 1.5rem;
+    }
+    
+    input {
+      padding: 0.8rem;
+      margin: 0.8rem 0;
       width: 100%;
       box-sizing: border-box;
+      border: 1px solid #ddd;
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      transition: border 0.3s;
     }
+    
+    input:focus {
+      border-color: var(--primary-color);
+      outline: none;
+    }
+    
     button {
-      background-color: #4285f4;
+      padding: 0.8rem;
+      margin: 0.8rem 0;
+      width: 100%;
+      background-color: var(--primary-color);
       color: white;
       border: none;
+      border-radius: var(--border-radius);
       cursor: pointer;
-      font-size: 16px;
+      font-size: 1rem;
+      font-weight: 500;
+      transition: background-color 0.3s;
     }
+    
     button:hover {
-      background-color: #3367d6;
+      background-color: var(--primary-hover);
     }
+    
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    
     .option {
-      padding: 10px;
-      margin: 5px 0;
+      padding: 0.8rem;
+      margin: 0.5rem 0;
       background-color: #f1f1f1;
       cursor: pointer;
-      border-radius: 5px;
+      border-radius: var(--border-radius);
+      transition: background-color 0.2s;
     }
+    
     .option:hover {
       background-color: #e1e1e1;
     }
+    
     .selected {
-      background-color: #d4e6ff;
+      background-color: var(--selected-color);
     }
+    
     .correct {
-      background-color: #a5d6a7;
+      background-color: var(--correct-color);
     }
+    
     .incorrect {
-      background-color: #ef9a9a;
+      background-color: var(--incorrect-color);
     }
+    
     #progress {
-      margin: 20px 0;
-      height: 5px;
+      margin: 1.5rem 0;
+      height: 6px;
       background-color: #e0e0e0;
-      border-radius: 5px;
+      border-radius: 3px;
     }
+    
     #progressBar {
       height: 100%;
       width: 0%;
-      background-color: #4285f4;
-      border-radius: 5px;
-      transition: width 0.3s;
+      background-color: var(--primary-color);
+      border-radius: 3px;
+      transition: width 0.4s ease-out;
     }
+    
     #explanation {
-      margin-top: 20px;
-      padding: 15px;
-      background-color: #e3f2fd;
-      border-radius: 5px;
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background-color: var(--explanation-bg);
+      border-radius: var(--border-radius);
+      animation: slideDown 0.3s ease-out;
+    }
+    
+    .error-message {
+      color: var(--error-color);
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .confidence-rating {
+      display: flex;
+      justify-content: space-between;
+      margin: 1rem 0;
+    }
+    
+    .confidence-btn {
+      width: 18%;
+      padding: 0.5rem;
+      background-color: #f1f1f1;
+      color: #333;
+    }
+    
+    .confidence-btn.active {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+      
+      .screen {
+        padding: 1.5rem;
+      }
     }
   </style>
 </head>
@@ -82,10 +180,10 @@
   <!-- Login Screen -->
   <div id="loginScreen" class="screen">
     <h1>Quiz App Login</h1>
-    <input id="username" placeholder="Username (3-20 characters)" minlength="3" maxlength="20">
-    <input id="pin" type="password" placeholder="4-digit PIN" maxlength="4" pattern="\d{4}">
-    <button onclick="login()">Start Quiz</button>
-    <div id="loginError" style="color: red; margin-top: 10px;"></div>
+    <input id="username" placeholder="Username (3-20 characters)" minlength="3" maxlength="20" required>
+    <input id="pin" type="password" placeholder="4-digit PIN" maxlength="4" pattern="\d{4}" required>
+    <button id="loginBtn">Start Quiz</button>
+    <div id="loginError" class="error-message hidden"></div>
   </div>
 
   <!-- Quiz Screen -->
@@ -95,14 +193,25 @@
     </div>
     <h2 id="question"></h2>
     <div id="options"></div>
+    <div id="confidenceContainer" class="hidden">
+      <p>How confident were you in this answer?</p>
+      <div class="confidence-rating">
+        <button class="confidence-btn" data-rating="1">1</button>
+        <button class="confidence-btn" data-rating="2">2</button>
+        <button class="confidence-btn" data-rating="3">3</button>
+        <button class="confidence-btn" data-rating="4">4</button>
+        <button class="confidence-btn" data-rating="5">5</button>
+      </div>
+    </div>
     <div id="explanation" class="hidden"></div>
-    <button id="submitBtn" onclick="submitAnswer()">Submit</button>
-    <button id="nextBtn" class="hidden" onclick="nextQuestion()">Next Question</button>
+    <button id="submitBtn">Submit</button>
+    <button id="nextBtn" class="hidden">Next Question</button>
   </div>
 
- <script>
+  <script>
     // Configuration
     const API_URL = "https://script.google.com/macros/s/AKfycby4xKx0Y17sKOnAa0b8lMqzJUdrs5woGqrOb8PkL33gguR0AxmkHjI7bTg868irMo8A/exec";
+    const PROXY_URL = "https://cors-anywhere.herokuapp.com/"; // Development only
     
     // App State
     let currentToken = null;
@@ -111,6 +220,7 @@
     let currentQuestionIndex = 0;
     let userProgress = {};
     let selectedOption = null;
+    let selectedConfidence = 3; // Default medium confidence
 
     // DOM Elements
     const loginScreen = document.getElementById('loginScreen');
@@ -118,14 +228,36 @@
     const questionElement = document.getElementById('question');
     const optionsElement = document.getElementById('options');
     const explanationElement = document.getElementById('explanation');
+    const confidenceContainer = document.getElementById('confidenceContainer');
     const submitBtn = document.getElementById('submitBtn');
     const nextBtn = document.getElementById('nextBtn');
+    const loginBtn = document.getElementById('loginBtn');
     const progressBar = document.getElementById('progressBar');
     const loginError = document.getElementById('loginError');
+    const usernameInput = document.getElementById('username');
+    const pinInput = document.getElementById('pin');
 
     // Initialize the app
     function init() {
-      // Check for existing session
+      setupEventListeners();
+      checkExistingSession();
+    }
+
+    function setupEventListeners() {
+      loginBtn.addEventListener('click', login);
+      submitBtn.addEventListener('click', submitAnswer);
+      nextBtn.addEventListener('click', nextQuestion);
+      
+      // Handle Enter key in login form
+      usernameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') login();
+      });
+      pinInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') login();
+      });
+    }
+
+    function checkExistingSession() {
       const cookies = document.cookie.split(';').map(c => c.trim());
       const tokenCookie = cookies.find(c => c.startsWith('quizToken='));
       
@@ -135,77 +267,109 @@
       }
     }
 
-    // Enhanced fetch wrapper with CORS handling
-    async function safeFetch(action, data = {}) {
-      try {
-        // Add timestamp to prevent caching
-        const url = new URL(API_URL);
-        url.searchParams.append('t', Date.now());
-        
-        const response = await fetch(url, {
-          method: 'POST',
-          mode: 'cors',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ action, ...data })
-        });
+    // Enhanced API client with error handling and retry logic
+    async function apiClient(action, data = {}) {
+      const MAX_RETRIES = 2;
+      let attempts = 0;
+      
+      while (attempts <= MAX_RETRIES) {
+        try {
+          const isDevelopment = window.location.hostname === 'localhost' || 
+                               window.location.hostname === '127.0.0.1';
+          
+          let url = isDevelopment ? `${PROXY_URL}${API_URL}` : API_URL;
+          url += `${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
+          
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ action, ...data })
+          });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
 
-        const result = await response.json();
-        
-        if (result.error) {
-          throw new Error(result.error);
+          const result = await response.json();
+          
+          if (result.error) {
+            throw new Error(result.error);
+          }
+          
+          return result;
+        } catch (error) {
+          attempts++;
+          if (attempts > MAX_RETRIES) {
+            console.error(`API call failed after ${MAX_RETRIES} attempts:`, error);
+            throw new Error('Failed to connect to server. Please try again later.');
+          }
+          
+          // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
         }
-        
-        return result;
-      } catch (error) {
-        console.error('API Error:', error);
-        throw error;
       }
     }
 
     // Handle login
     async function login() {
-      const username = document.getElementById('username').value.trim();
-      const pin = document.getElementById('pin').value.trim();
+      const username = usernameInput.value.trim();
+      const pin = pinInput.value.trim();
       
+      // Clear previous errors
+      loginError.textContent = '';
+      loginError.classList.add('hidden');
+      
+      // Validate input
       if (!username || username.length < 3 || username.length > 20) {
-        loginError.textContent = 'Username must be 3-20 characters';
+        showError(loginError, 'Username must be 3-20 characters');
         return;
       }
       
       if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-        loginError.textContent = 'PIN must be 4 digits';
+        showError(loginError, 'PIN must be 4 digits');
         return;
       }
 
       try {
-        const { token, username: loggedInUser, progress } = await safeFetch('login', { username, pin });
+        // Disable login button during request
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Logging in...';
+        
+        const { token, username: loggedInUser, progress } = await apiClient('login', { username, pin });
         
         currentToken = token;
         currentUser = loggedInUser;
         userProgress = progress || {};
         
         // Set cookie that expires in 24 hours
-        document.cookie = `quizToken=${token}; max-age=86400; path=/`;
+        document.cookie = `quizToken=${token}; max-age=86400; path=/; SameSite=Lax`;
         
         loadQuiz();
       } catch (error) {
-        loginError.textContent = error.message || 'Login failed';
+        showError(loginError, error.message || 'Login failed. Please try again.');
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Start Quiz';
       }
     }
 
     // Load quiz questions
     async function loadQuiz() {
       try {
-        const { questions: loadedQuestions } = await safeFetch('getQuestions', {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Loading...';
+        
+        const { questions: loadedQuestions } = await apiClient('getQuestions', {
           token: currentToken,
           username: currentUser
         });
+        
+        if (!loadedQuestions || loadedQuestions.length === 0) {
+          throw new Error('No questions available');
+        }
         
         questions = loadedQuestions;
         currentQuestionIndex = 0;
@@ -215,14 +379,18 @@
         
         showQuestion();
       } catch (error) {
-        alert(error.message || 'Failed to load questions');
+        alert(error.message || 'Failed to load questions. Please try again later.');
+        console.error('Quiz loading error:', error);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit';
       }
     }
 
     // Display current question
     function showQuestion() {
       if (currentQuestionIndex >= questions.length) {
-        alert('Quiz completed!');
+        showQuizCompletion();
         return;
       }
       
@@ -230,6 +398,7 @@
       questionElement.textContent = question[1];
       optionsElement.innerHTML = '';
       explanationElement.classList.add('hidden');
+      confidenceContainer.classList.add('hidden');
       nextBtn.classList.add('hidden');
       submitBtn.classList.remove('hidden');
       selectedOption = null;
@@ -238,13 +407,38 @@
       question[2].split(',').forEach((option, index) => {
         const optionElement = document.createElement('div');
         optionElement.className = 'option';
-        optionElement.textContent = option;
-        optionElement.onclick = () => selectOption(index);
+        optionElement.textContent = option.trim();
+        optionElement.addEventListener('click', () => selectOption(index));
         optionsElement.appendChild(optionElement);
       });
       
       // Update progress bar
-      progressBar.style.width = `${(currentQuestionIndex / questions.length) * 100}%`;
+      updateProgressBar();
+      
+      // Setup confidence buttons
+      setupConfidenceButtons();
+    }
+
+    function updateProgressBar() {
+      const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+      progressBar.style.width = `${progress}%`;
+    }
+
+    function setupConfidenceButtons() {
+      const buttons = confidenceContainer.querySelectorAll('.confidence-btn');
+      buttons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.addEventListener('click', (e) => {
+          buttons.forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          selectedConfidence = parseInt(e.target.dataset.rating);
+        });
+      });
+      
+      // Set default confidence (3)
+      if (buttons[2]) {
+        buttons[2].classList.add('active');
+      }
     }
 
     // Handle option selection
@@ -254,27 +448,36 @@
       }
       selectedOption = index;
       optionsElement.children[index].classList.add('selected');
+      submitBtn.disabled = false;
     }
 
     // Submit answer
     async function submitAnswer() {
       if (selectedOption === null) {
-        alert('Please select an answer');
+        showError(explanationElement, 'Please select an answer');
         return;
       }
       
       const question = questions[currentQuestionIndex];
       const options = question[2].split(',');
-      const isCorrect = options[selectedOption] === question[3];
+      const isCorrect = options[selectedOption].trim() === question[3].trim();
       
       // Show explanation
-      explanationElement.textContent = question[4];
+      explanationElement.textContent = question[4] || 'No explanation available';
       explanationElement.classList.remove('hidden');
       
+      // Show confidence rating if answer was correct
+      if (isCorrect) {
+        confidenceContainer.classList.remove('hidden');
+      }
+      
       // Highlight answers
-      const correctIndex = options.indexOf(question[3]);
-      optionsElement.children[correctIndex].classList.add('correct');
-      if (!isCorrect) {
+      const correctIndex = options.findIndex(opt => opt.trim() === question[3].trim());
+      if (correctIndex >= 0) {
+        optionsElement.children[correctIndex].classList.add('correct');
+      }
+      
+      if (!isCorrect && selectedOption >= 0) {
         optionsElement.children[selectedOption].classList.add('incorrect');
       }
       
@@ -282,8 +485,11 @@
       nextBtn.classList.remove('hidden');
       
       // Save progress
-      const confidence = isCorrect ? promptConfidence() : 0;
-      await saveProgress(question[0], isCorrect, confidence);
+      try {
+        await saveProgress(question[0], isCorrect, isCorrect ? selectedConfidence : 0);
+      } catch (error) {
+        console.error('Failed to save progress:', error);
+      }
     }
 
     // Move to next question
@@ -292,9 +498,14 @@
       showQuestion();
     }
 
-    // Prompt user for confidence level
-    function promptConfidence() {
-      return 3; // Default medium confidence
+    // Show quiz completion message
+    function showQuizCompletion() {
+      quizScreen.innerHTML = `
+        <h2>Quiz Completed!</h2>
+        <p>You've answered all available questions.</p>
+        <p>Your progress has been saved.</p>
+        <button onclick="location.reload()">Start Again</button>
+      `;
     }
 
     // Save user progress
@@ -307,25 +518,32 @@
       };
       
       try {
-        await safeFetch('saveProgress', {
+        await apiClient('saveProgress', {
           token: currentToken,
           username: currentUser,
           progress: userProgress
         });
       } catch (error) {
         console.error('Progress save failed:', error);
+        throw error;
       }
     }
 
     // Calculate next review date
     function calculateNextReviewDate(confidence) {
-      const intervals = [1, 3, 7, 14, 30];
+      const intervals = [1, 3, 7, 14, 30]; // Days for confidence levels 0-4
       const days = intervals[Math.min(confidence, intervals.length - 1)];
       return new Date(Date.now() + days * 86400000);
     }
 
-    // Initialize the app
-    window.onload = init;
-</script>
+    // Helper function to show errors
+    function showError(element, message) {
+      element.textContent = message;
+      element.classList.remove('hidden');
+    }
+
+    // Initialize the app when page loads
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
 </body>
 </html>
