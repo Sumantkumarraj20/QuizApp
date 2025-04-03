@@ -1,24 +1,13 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyD4sWIxV-uQBUkIaBY3JcOAgMrmSdDPees",
-  authDomain: "quizeguide.firebaseapp.com",
-  projectId: "quizeguide",
-  storageBucket: "quizeguide.firebasestorage.app",
-  messagingSenderId: "688415775599",
-  appId: "1:688415775599:web:0c805d3053eef487eca69a",
-  measurementId: "G-MWZD22DB5V"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+    apiKey: "AIzaSyD4sWIxV-uQBUkIaBY3JcOAgMrmSdDPees",
+    authDomain: "quizeguide.firebaseapp.com",
+    projectId: "quizeguide",
+    storageBucket: "quizeguide.firebasestorage.app",
+    messagingSenderId: "688415775599",
+    appId: "1:688415775599:web:0c805d3053eef487eca69a",
+    measurementId: "G-MWZD22DB5V"
+  };
   
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
