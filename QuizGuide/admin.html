@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel | QuizGuide</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+  <style>
+    .admin-container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .admin-sidebar {
+      width: 250px;
+      background-color: var(--dark-color);
+      color: white;
+      padding: 1rem;
+    }
+    .admin-main {
+      flex: 1;
+      padding: 2rem;
+      background-color: #f5f5f5;
+    }
+    .admin-nav {
+      list-style: none;
+    }
+    .admin-nav li {
+      margin-bottom: 0.5rem;
+    }
+    .admin-nav a {
+      display: block;
+      padding: 0.75rem;
+      color: white;
+      border-radius: var(--border-radius);
+      transition: var(--transition);
+    }
+    .admin-nav a:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    .admin-nav a.active {
+      background-color: var(--primary-color);
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .table th, .table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    .table th {
+      background-color: #f8f9fa;
+      font-weight: 500;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .badge-primary {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    .badge-success {
+      background-color: var(--secondary-color);
+      color: white;
+    }
+    .badge-secondary {
+      background-color: var(--gray-color);
+      color: white;
+    }
+    .json-editor {
+      width: 100%;
+      min-height: 300px;
+      font-family: monospace;
+      padding: 1rem;
+      border: 1px solid #ddd;
+      border-radius: var(--border-radius);
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <div class="admin-sidebar">
+      <h2 class="mb-3">QuizGuide Admin</h2>
+      <ul class="admin-nav">
+        <li><a href="#dashboard" class="active" data-tab="dashboard">Dashboard</a></li>
+        <li><a href="#questions" data-tab="questions">Manage Questions</a></li>
+        <li><a href="#add-question" data-tab="add-question">Add Question</a></li>
+        <li><a href="#users" data-tab="users">User Management</a></li>
+        <li><a href="#activity" data-tab="activity">Activity Log</a></li>
+        <li><a href="#" id="logoutBtn">Logout</a></li>
+      </ul>
+    </div>
+    
+    <div class="admin-main">
+      <!-- Dashboard Tab -->
+      <div id="dashboard" class="tab-content active">
+        <h2 class="mb-4">Admin Dashboard</h2>
+        <div class="card">
+          <div class="grid grid-3">
+            <div class="card">
+              <h3>Total Questions</h3>
+              <p id="totalQuestions">Loading...</p>
+            </div>
+            <div class="card">
+              <h3>Active Users</h3>
+              <p id="activeUsers">Loading...</p>
+            </div>
+            <div class="card">
+              <h3>Avg. Score</h3>
+              <p id="avgScore">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Questions Tab -->
+      <div id="questions" class="tab-content">
+        <div class="flex justify-between items-center mb-4">
+          <h2>Manage Questions</h2>
+          <div class="flex">
+            <input type="text" id="questionSearch" placeholder="Search questions..." class="form-control mr-2">
+            <button id="refreshQuestions" class="btn btn-secondary">Refresh</button>
+          </div>
+        </div>
+        
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Question</th>
+                <th>Category</th>
+                <th>Difficulty</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="questionsTable">
+              <tr>
+                <td colspan="6" class="text-center py-4">Loading questions...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Add Question Tab -->
+      <div id="add-question" class="tab-content">
+        <h2 class="mb-4">Add New Question</h2>
+        <form id="questionForm" class="card">
+          <div class="form-group">
+            <label for="questionText">Question Text</label>
+            <textarea id="questionText" class="form-control" rows="3" required></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label>Options</label>
+            <div id="optionsContainer">
+              <div class="flex mb-2">
+                <input type="text" class="form-control option-input" placeholder="Option 1" required>
+                <button type="button" class="btn btn-danger ml-2 remove-option">Remove</button>
+              </div>
+              <div class="flex mb-2">
+                <input type="text" class="form-control option-input" placeholder="Option 2" required>
+                <button type="button" class="btn btn-danger ml-2 remove-option">Remove</button>
+              </div>
+            </div>
+            <button type="button" id="addOption" class="btn btn-secondary">Add Option</button>
+          </div>
+          
+          <div class="form-group">
+            <label for="correctAnswer">Correct Answer</label>
+            <select id="correctAnswer" class="form-control" required>
+              <option value="">Select correct answer</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="explanation">Explanation</label>
+            <textarea id="explanation" class="form-control" rows="3" required></textarea>
+          </div>
+          
+          <div class="grid grid-2 gap-4">
+            <div class="form-group">
+              <label for="difficulty">Difficulty</label>
+              <select id="difficulty" class="form-control" required>
+                <option value="Easy">Easy</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="category">Category</label>
+              <input type="text" id="category" class="form-control" required>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="tags">Tags (comma separated)</label>
+            <input type="text" id="tags" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label class="flex items-center">
+              <input type="checkbox" id="isActive" checked> Active Question
+            </label>
+          </div>
+          
+          <button type="submit" class="btn btn-primary">Save Question</button>
+        </form>
+      </div>
+      
+      <!-- Users Tab -->
+      <div id="users" class="tab-content">
+        <h2 class="mb-4">User Management</h2>
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Last Login</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTable">
+              <tr>
+                <td colspan="5" class="text-center py-4">Loading users...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Activity Tab -->
+      <div id="activity" class="tab-content">
+        <h2 class="mb-4">Activity Log</h2>
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Details</th>
+                <th>User</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody id="activityTable">
+              <tr>
+                <td colspan="4" class="text-center py-4">Loading activity...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // DOM Elements
+    const logoutBtn = document.getElementById('logoutBtn');
+    const tabLinks = document.querySelectorAll('.admin-nav a[data-tab]');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const questionsTable = document.getElementById('questionsTable');
+    const usersTable = document.getElementById('usersTable');
+    const activityTable = document.getElementById('activityTable');
+    const questionForm = document.getElementById('questionForm');
+    const optionsContainer = document.getElementById('optionsContainer');
+    const addOptionBtn = document.getElementById('addOption');
+    const correctAnswerSelect = document.getElementById('correctAnswer');
+    const questionSearch = document.getElementById('questionSearch');
+    const refreshQuestionsBtn = document.getElementById('refreshQuestions');
+
+    // Admin State
+    let currentAdmin = null;
+    let questions = [];
+    let users = [];
+    let activities = [];
+
+    // Initialize Admin Panel
+    function initAdminPanel() {
+      // Check authentication and admin role
+      auth.onAuthStateChanged((user) => {
+        if (user) {
+          checkAdminRole(user.uid);
+        } else {
+          window.location.href = 'login.html';
+        }
+      });
+
+      // Tab switching
+      tabLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const tabId = link.dataset.tab;
+          
+          // Update active tab
+          tabLinks.forEach(t => t.classList.remove('active'));
+          tabContents.forEach(t => t.classList.remove('active'));
+          
+          link.classList.add('active');
+          document.getElementById(tabId).classList.add('active');
+          
+          // Load data for the tab
+          switch(tabId) {
+            case 'questions':
+              loadQuestions();
+              break;
+            case 'users':
+              loadUsers();
+              break;
+            case 'activity':
+              loadActivity();
+              break;
+            case 'dashboard':
+              loadDashboardStats();
+              break;
+          }
+        });
+      });
+
+      // Logout button
+      logoutBtn.addEventListener('click', () => {
+        auth.signOut().then(() => {
+          window.location.href = 'login.html';
+        });
+      });
+
+      // Question form
+      questionForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveQuestion();
+      });
+
+      // Add option button
+      addOptionBtn.addEventListener('click', addOption);
+
+      // Remove option buttons
+      optionsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-option')) {
+          if (optionsContainer.children.length > 2) {
+            e.target.parentElement.remove();
+            updateCorrectAnswerOptions();
+          }
+        }
+      });
+
+      // Question search
+      questionSearch.addEventListener('input', () => {
+        filterQuestions(questionSearch.value);
+      });
+
+      // Refresh questions
+      refreshQuestionsBtn.addEventListener('click', loadQuestions);
+    }
+
+    // Check Admin Role
+    function checkAdminRole(uid) {
+      db.collection('users').doc(uid).get()
+        .then((doc) => {
+          if (doc.exists && doc.data().role === 'admin') {
+            currentAdmin = {
+              uid: uid,
+              ...doc.data()
+            };
+            loadDashboardStats();
+          } else {
+            window.location.href = 'index.html';
+          }
+        })
+        .catch((error) => {
+          console.error("Error checking admin role:", error);
+          window.location.href = 'login.html';
+        });
+    }
+
+    // Load Dashboard Stats
+    async function loadDashboardStats() {
+      try {
+        // Get total questions
+        const questionsCount = await db.collection('questions').count().get();
+        document.getElementById('totalQuestions').textContent = questionsCount.data().count;
+        
+        // Get active users (logged in last 7 days)
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        
+        const activeUsersQuery = await db.collection('users')
+          .where('lastLogin', '>=', weekAgo)
+          .count()
+          .get();
+        
+        document.getElementById('activeUsers').textContent = activeUsersQuery.data().count;
+        
+        // Get average score
+        const userProgressSnapshot = await db.collection('userProgress').get();
+        let totalScore = 0;
+        let totalUsers = 0;
+        
+        userProgressSnapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.stats && data.stats.totalQuestionsAnswered > 0) {
+            totalScore += (data.stats.correctAnswers / data.stats.totalQuestionsAnswered) * 100;
+            totalUsers++;
+          }
+        });
+        
+        const avgScore = totalUsers > 0 ? (totalScore / totalUsers).toFixed(1) : 0;
+        document.getElementById('avgScore').textContent = `${avgScore}%`;
+      } catch (error) {
+        console.error("Error loading dashboard stats:", error);
+      }
+    }
+
+    // Load Questions
+    async function loadQuestions() {
+      try {
+        questionsTable.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-4">
+              <div class="spinner"></div>
+              Loading questions...
+            </td>
+          </tr>
+        `;
+        
+        const querySnapshot = await db.collection('questions')
+          .orderBy('createdAt', 'desc')
+          .get();
+        
+        questions = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        renderQuestionsTable();
+      } catch (error) {
+        console.error("Error loading questions:", error);
+        questionsTable.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-4 text-danger">
+              Failed to load questions. Please try again.
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // Render Questions Table
+    function renderQuestionsTable(filterText = '') {
+      const filteredQuestions = filterText 
+        ? questions.filter(q => 
+            q.text.toLowerCase().includes(filterText.toLowerCase()) ||
+            q.category.toLowerCase().includes(filterText.toLowerCase()))
+        : questions;
+      
+      if (filteredQuestions.length === 0) {
+        questionsTable.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-4">
+              No questions found
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      questionsTable.innerHTML = filteredQuestions.map(question => `
+        <tr>
+          <td>${question.id.substring(0, 8)}</td>
+          <td>${question.text.substring(0, 50)}${question.text.length > 50 ? '...' : ''}</td>
+          <td>${question.category}</td>
+          <td>
+            <span class="badge ${
+              question.difficulty === 'Easy' ? 'badge-success' : 
+              question.difficulty === 'Medium' ? 'badge-primary' : 'badge-secondary'
+            }">
+              ${question.difficulty}
+            </span>
+          </td>
+          <td>
+            <span class="badge ${question.isActive ? 'badge-success' : 'badge-secondary'}">
+              ${question.isActive ? 'Active' : 'Inactive'}
+            </span>
+          </td>
+          <td>
+            <button class="btn btn-secondary btn-sm edit-question" data-id="${question.id}">Edit</button>
+            <button class="btn btn-danger btn-sm delete-question" data-id="${question.id}">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+      
+      // Add event listeners to action buttons
+      document.querySelectorAll('.edit-question').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const questionId = e.target.dataset.id;
+          editQuestion(questionId);
+        });
+      });
+      
+      document.querySelectorAll('.delete-question').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const questionId = e.target.dataset.id;
+          deleteQuestion(questionId);
+        });
+      });
+    }
+
+    // Filter Questions
+    function filterQuestions(searchText) {
+      renderQuestionsTable(searchText);
+    }
+
+    // Add Option
+    function addOption() {
+      const optionCount = optionsContainer.children.length;
+      const optionDiv = document.createElement('div');
+      optionDiv.className = 'flex mb-2';
+      optionDiv.innerHTML = `
+        <input type="text" class="form-control option-input" placeholder="Option ${optionCount + 1}" required>
+        <button type="button" class="btn btn-danger ml-2 remove-option">Remove</button>
+      `;
+      optionsContainer.appendChild(optionDiv);
+      updateCorrectAnswerOptions();
+    }
+
+    // Update Correct Answer Options
+    function updateCorrectAnswerOptions() {
+      const options = Array.from(optionsContainer.querySelectorAll('.option-input'))
+        .map((input, index) => ({
+          value: index,
+          text: `Option ${index + 1}${input.value ? `: ${input.value.substring(0, 20)}` : ''}`
+        }));
+      
+      correctAnswerSelect.innerHTML = `
+        <option value="">Select correct answer</option>
+        ${options.map(option => `<option value="${option.value}">${option.text}</option>`).join('')}
+      `;
+    }
+
+    // Save Question
+    async function saveQuestion() {
+      const questionData = {
+        text: document.getElementById('questionText').value,
+        options: Array.from(optionsContainer.querySelectorAll('.option-input')).map(input => input.value),
+        correctAnswer: parseInt(document.getElementById('correctAnswer').value),
+        explanation: document.getElementById('explanation').value,
+        difficulty: document.getElementById('difficulty').value,
+        category: document.getElementById('category').value,
+        tags: document.getElementById('tags').value.split(',').map(tag => tag.trim()),
+        isActive: document.getElementById('isActive').checked,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy: currentAdmin.uid
+      };
+      
+      try {
+        await db.collection('questions').add(questionData);
+        
+        // Reset form
+        questionForm.reset();
+        optionsContainer.innerHTML = `
+          <div class="flex mb-2">
+            <input type="text" class="form-control option-input" placeholder="Option 1" required>
+            <button type="button" class="btn btn-danger ml-2 remove-option">Remove</button>
+          </div>
+          <div class="flex mb-2">
+            <input type="text" class="form-control option-input" placeholder="Option 2" required>
+            <button type="button" class="btn btn-danger ml-2 remove-option">Remove</button>
+          </div>
+        `;
+        updateCorrectAnswerOptions();
+        
+        // Show success message
+        alert('Question saved successfully!');
+        
+        // Reload questions
+        loadQuestions();
+      } catch (error) {
+        console.error("Error saving question:", error);
+        alert('Failed to save question. Please try again.');
+      }
+    }
+
+    // Edit Question
+    async function editQuestion(questionId) {
+      // Implementation would be similar to saveQuestion but with update instead of add
+      alert('Edit functionality would be implemented here');
+    }
+
+    // Delete Question
+    async function deleteQuestion(questionId) {
+      if (confirm('Are you sure you want to delete this question?')) {
+        try {
+          await db.collection('questions').doc(questionId).delete();
+          loadQuestions();
+        } catch (error) {
+          console.error("Error deleting question:", error);
+          alert('Failed to delete question. Please try again.');
+        }
+      }
+    }
+
+    // Load Users
+    async function loadUsers() {
+      try {
+        usersTable.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center py-4">
+              <div class="spinner"></div>
+              Loading users...
+            </td>
+          </tr>
+        `;
+        
+        const querySnapshot = await db.collection('users').get();
+        users = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        renderUsersTable();
+      } catch (error) {
+        console.error("Error loading users:", error);
+        usersTable.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center py-4 text-danger">
+              Failed to load users. Please try again.
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // Render Users Table
+    function renderUsersTable() {
+      usersTable.innerHTML = users.map(user => `
+        <tr>
+          <td>${user.email}</td>
+          <td>${user.name || '-'}</td>
+          <td>
+            <span class="badge ${user.role === 'admin' ? 'badge-primary' : 'badge-secondary'}">
+              ${user.role}
+            </span>
+          </td>
+          <td>${user.lastLogin?.toDate().toLocaleString() || 'Never'}</td>
+          <td>
+            ${user.id !== currentAdmin.uid ? `
+              <button class="btn btn-secondary btn-sm ${user.role === 'admin' ? 'make-user' : 'make-admin'}" 
+                data-id="${user.id}">
+                Make ${user.role === 'admin' ? 'User' : 'Admin'}
+              </button>
+            ` : ''}
+          </td>
+        </tr>
+      `).join('');
+      
+      // Add event listeners to action buttons
+      document.querySelectorAll('.make-admin, .make-user').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const userId = e.target.dataset.id;
+          const newRole = e.target.classList.contains('make-admin') ? 'admin' : 'user';
+          updateUserRole(userId, newRole);
+        });
+      });
+    }
+
+    // Update User Role
+    async function updateUserRole(userId, newRole) {
+      if (confirm(`Are you sure you want to change this user's role to ${newRole}?`)) {
+        try {
+          await db.collection('users').doc(userId).update({
+            role: newRole
+          });
+          loadUsers();
+        } catch (error) {
+          console.error("Error updating user role:", error);
+          alert('Failed to update user role. Please try again.');
+        }
+      }
+    }
+
+    // Load Activity
+    async function loadActivity() {
+      try {
+        activityTable.innerHTML = `
+          <tr>
+            <td colspan="4" class="text-center py-4">
+              <div class="spinner"></div>
+              Loading activity...
+            </td>
+          </tr>
+        `;
+        
+        const querySnapshot = await db.collection('activity')
+          .orderBy('timestamp', 'desc')
+          .limit(50)
+          .get();
+        
+        activities = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data().timestamp.toDate()
+        }));
+        
+        renderActivityTable();
+      } catch (error) {
+        console.error("Error loading activity:", error);
+        activityTable.innerHTML = `
+          <tr>
+            <td colspan="4" class="text-center py-4 text-danger">
+              Failed to load activity. Please try again.
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // Render Activity Table
+    function renderActivityTable() {
+      activityTable.innerHTML = activities.map(activity => `
+        <tr>
+          <td>${activity.action}</td>
+          <td>${activity.details.substring(0, 50)}${activity.details.length > 50 ? '...' : ''}</td>
+          <td>${activity.userEmail}</td>
+          <td>${activity.timestamp.toLocaleString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Initialize the admin panel
+    initAdminPanel();
+  </script>
+</body>
+</html>

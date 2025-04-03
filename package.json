@@ -1,0 +1,7 @@
+{
+    "type": "module",
+    "dependencies": {
+      "firebase": "^9.6.0",
+      "dotenv": "^10.0.0"
+    }
+  }
